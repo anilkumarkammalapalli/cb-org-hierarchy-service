@@ -2,6 +2,7 @@ package com.hierarchyhub.controller;
 
 import com.hierarchyhub.dto.OrganizationRequest;
 import com.hierarchyhub.exception.InternalServerException;
+import com.hierarchyhub.model.ApiResponse;
 import com.hierarchyhub.model.Organization;
 import com.hierarchyhub.model.OrganizationDTO;
 import com.hierarchyhub.repository.OrganizationRepository;
@@ -16,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/org/hierarchy")
+@RequestMapping("/org/v1/hierarchy")
 public class OrgController {
 
 
@@ -26,24 +27,27 @@ public class OrgController {
     @Autowired
     OrganizationRepository repository;
 
-    @PostMapping
+    @PostMapping("/create")
     public Organization addOrganization(@RequestBody OrganizationRequest request) {
         return service.addOrganization(request);
     }
 
     @GetMapping("/list/{id}")
-    public Map<String, Object> fetchHierarchy(@PathVariable("id") String id) throws Exception {
-        return service.fetchHierarchy(id);
+    public ResponseEntity<?> fetchHierarchy(@PathVariable("id") String id) throws Exception {
+        ApiResponse response = service.fetchHierarchy(id);
+        return new ResponseEntity<>(response, response.getResponseCode());
     }
 
     @PostMapping("/search")
-    public Map<String, Object> searchOrganization(@RequestParam String orgname) {
-        return service.getSearchOrganizationHierarchy(orgname);
+    public ResponseEntity<?> searchOrganization(@RequestBody Map<String, Object> searchCriteria) {
+        ApiResponse response = service.getSearchOrganizationHierarchy(searchCriteria);
+        return new ResponseEntity<>(response, response.getResponseCode());
     }
 
     @GetMapping("/list")
-    public ResponseEntity<List<Map<String, Object>>> getLevel1Organizations() throws InternalServerException {
-        return ResponseEntity.ok(service.getLevel1Organizations());
+    public ResponseEntity<?> getLevel1Organizations() {
+        ApiResponse response = service.getLevel1Organizations();
+        return new ResponseEntity<>(response, response.getResponseCode());
     }
 
 }
