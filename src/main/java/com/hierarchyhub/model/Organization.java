@@ -8,19 +8,24 @@ import java.util.List;
 import java.util.Map;
 @NodeEntity
 public class Organization {
-        @Id
-        private String id;
-        private String orgname;
-        private String channel;
-        private String orgcode;
-        private String parentOrgId;
-        private String orgType;
-        private String orgSubType;
-        private Boolean isTenant;
-    private String requestedBy;
-    private String externalSourceId;
 
-        @Relationship(type = "PARENT_OF", direction = Relationship.OUTGOING)
+    @Id
+    @Property("mapid")
+    private String mapid;
+
+    @Property("orgname")
+    private String orgname;
+
+    @Property("orgcode")
+    private String orgcode;
+
+    @Property("sborgtype")
+    private String sborgtype;
+
+    @Property("sborgsubtype")
+    private String sborgsubtype;
+
+    @Relationship(type = "PARENT_OF", direction = Relationship.OUTGOING)
         private List<Organization> children;
 
     @Properties
@@ -29,13 +34,12 @@ public class Organization {
     public Organization() {
     }
 
-
-    public String getId() {
-        return id;
+    public String getMapid() {
+        return mapid;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setMapid(String mapid) {
+        this.mapid = mapid;
     }
 
     public String getOrgname() {
@@ -46,14 +50,6 @@ public class Organization {
         this.orgname = orgname;
     }
 
-    public String getChannel() {
-        return channel;
-    }
-
-    public void setChannel(String channel) {
-        this.channel = channel;
-    }
-
     public String getOrgcode() {
         return orgcode;
     }
@@ -62,52 +58,20 @@ public class Organization {
         this.orgcode = orgcode;
     }
 
-    public String getParentOrgId() {
-        return parentOrgId;
+    public String getSborgtype() {
+        return sborgtype;
     }
 
-    public void setParentOrgId(String parentOrgId) {
-        this.parentOrgId = parentOrgId;
+    public void setSborgtype(String sborgtype) {
+        this.sborgtype = sborgtype;
     }
 
-    public String getOrgType() {
-        return orgType;
+    public String getSborgsubtype() {
+        return sborgsubtype;
     }
 
-    public void setOrgType(String orgType) {
-        this.orgType = orgType;
-    }
-
-    public String getOrgSubType() {
-        return orgSubType;
-    }
-
-    public void setOrgSubType(String orgSubType) {
-        this.orgSubType = orgSubType;
-    }
-
-    public Boolean getTenant() {
-        return isTenant;
-    }
-
-    public void setTenant(Boolean tenant) {
-        isTenant = tenant;
-    }
-
-    public String getRequestedBy() {
-        return requestedBy;
-    }
-
-    public void setRequestedBy(String requestedBy) {
-        this.requestedBy = requestedBy;
-    }
-
-    public String getExternalSourceId() {
-        return externalSourceId;
-    }
-
-    public void setExternalSourceId(String externalSourceId) {
-        this.externalSourceId = externalSourceId;
+    public void setSborgsubtype(String sborgsubtype) {
+        this.sborgsubtype = sborgsubtype;
     }
 
     public List<Organization> getChildren() {

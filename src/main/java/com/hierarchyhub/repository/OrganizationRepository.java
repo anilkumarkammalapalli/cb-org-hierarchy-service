@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface OrganizationRepository extends Neo4jRepository<Organization, String> {
 
-    @Query("MATCH (root:Organization {id: $orgId}) " +
+    @Query("MATCH (root:Organization {mapid: $orgId}) " +
             "CALL apoc.path.subgraphNodes(root, { " +
             "   relationshipFilter: 'PARENT_OF', " +
             "   bfs: true, " +
@@ -27,7 +27,7 @@ public interface OrganizationRepository extends Neo4jRepository<Organization, St
             "    id: node.id, " +
             "    orgname: node.orgname, " +
             "    properties: apoc.map.clean(properties(node), ['labels'], []), " +
-            "    parentOrgId: node.parentOrgId, " +
+            "    parentOrgId: node.parentmapid, " +
             "    children: childIds " +
             "}) AS nodes " +
 
@@ -47,7 +47,7 @@ public interface OrganizationRepository extends Neo4jRepository<Organization, St
             "    id: node.id, " +
             "    orgname: node.orgname, " +
             "    properties: apoc.map.clean(properties(node), ['labels'], []), " +
-            "    parentOrgId: node.parentOrgId, " +
+            "    parentOrgId: node.parentmapid, " +
             "    children: childIds " +
             "}) AS nodes " +
             "RETURN apoc.convert.toJson(nodes) AS hierarchy")

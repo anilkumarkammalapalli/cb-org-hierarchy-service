@@ -27,11 +27,6 @@ public class OrgController {
     @Autowired
     OrganizationRepository repository;
 
-    @PostMapping("/create")
-    public Organization addOrganization(@RequestBody OrganizationRequest request) {
-        return service.addOrganization(request);
-    }
-
     @GetMapping("/list/{id}")
     public ResponseEntity<?> fetchHierarchy(@PathVariable("id") String id) throws Exception {
         ApiResponse response = service.fetchHierarchy(id);
