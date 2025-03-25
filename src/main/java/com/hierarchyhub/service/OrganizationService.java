@@ -42,48 +42,10 @@ public class OrganizationService {
     @Autowired
     RedisTemplate redisTemplate;
 
-    public Organization addOrganization(OrganizationRequest request) {
-
-        Organization org = new Organization();
-        org.setId(generateMapid());
-        org.setOrgname(request.getOrgName());
-        org.setChannel(request.getChannel());
-        org.setTenant(request.isTenant());
-        org.setOrgType(request.getOrganisationType());
-        org.setOrgSubType(request.getOrganisationSubType());
-        org.setRequestedBy(request.getRequestedBy());
-        org.setExternalSourceId(request.getExternalSourceId() != null ? request.getExternalSourceId() : null);
-
-        if (request.getAdditionalProperties() != null) {
-            org.setAdditionalProperties(request.getAdditionalProperties());
-        }
-
-        if (request.getParentId() != null) {
-            org.setParentOrgId(request.getParentId());
-        }
-
-
-        Organization savedOrg = repository.save(org);
-
-        if (!request.isParent() && request.getParentId() != null) {
-            Organization parent = repository.findById(request.getParentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Parent Organization not found"));
-
-            if (parent.getChildren() == null) {
-                parent.setChildren(new ArrayList<>());
-            }
-
-            parent.getChildren().add(savedOrg);
-
-            repository.save(parent);
-        }
-
-        return savedOrg;
-    }
-
     public ApiResponse fetchHierarchy(String id) {
         ApiResponse response = new ApiResponse();
-      String jsonResponse = repository.findHierarchyByOrgId(id, configuration.getMaxLevel());
+        String jsonResponse = repository.findHierarchyByOrgId(id, configuration.getMaxLevel());
+
         try {
             if (jsonResponse == null || jsonResponse.trim().isEmpty() || jsonResponse.equals("[]")) {
                 response.setResponseCode(HttpStatus.NO_CONTENT);
@@ -92,10 +54,26 @@ public class OrganizationService {
                 log.warn("No hierarchy data available for orgId: {}", id);
                 return response;
             }
-            List<Map<String, Object>> nodes = objectMapper.readValue(jsonResponse, new TypeReference<Object>() {});
+
+            List<Map<String, Object>> nodes = objectMapper.readValue(jsonResponse, new TypeReference<List<Map<String, Object>>>() {});
+
             Map<String, Map<String, Object>> nodeMap = nodes.stream()
-                    .collect(Collectors.toMap(n -> (String) n.get(Constants.ID), n -> n));
-            Map<String, Object> root = nodeMap.get(id);
+                    .collect(Collectors.toMap(
+                            n -> {
+                                Map<String, Object> props = (Map<String, Object>) n.get("properties");
+                                return props != null ? (String) props.get("mapid") : null;
+                            },
+                            n -> n
+                    ));
+
+            Map<String, Object> root = nodeMap.values().stream()
+                    .filter(n -> {
+                        Map<String, Object> props = (Map<String, Object>) n.get("properties");
+                        return props != null && id.equals(props.get("mapid"));
+                    })
+                    .findFirst()
+                    .orElse(null);
+
             if (root == null) {
                 response.setResponseCode(HttpStatus.NO_CONTENT);
                 response.getParams().setStatus(Constants.FAILED);
@@ -103,38 +81,37 @@ public class OrganizationService {
                 log.warn("No root node found for orgId: {}", id);
                 return response;
             }
+
             attachChildren(root, nodeMap);
+
             response.setResponseCode(HttpStatus.OK);
             response.getResult().put(Constants.RESPONSE, Constants.SUCCESS);
             response.getParams().setStatus(Constants.SUCCESS);
             response.setResult(root);
+
         } catch (IOException e) {
             log.error("Failed to parse json. Exception: ", e);
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             response.getParams().setStatus(Constants.FAILED);
             response.getParams().setErr(e.getMessage());
-            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             log.error("An unexpected error occurred. Exception: ", e);
             response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
             response.getParams().setStatus(Constants.FAILED);
             response.getParams().setErr(e.getMessage());
-            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return response;
     }
 
     private void attachChildren(Map<String, Object> node, Map<String, Map<String, Object>> nodeMap) {
-        List<String> childIds = (List<String>) node.get(Constants.CHILDREN);
+        String nodeMapId = String.valueOf(((Map<String, Object>) node.get("properties")).get("mapid"));
         List<Map<String, Object>> childNodes = new ArrayList<>();
 
-        if (childIds != null) {
-            for (String childId : childIds) {
-                Map<String, Object> childNode = nodeMap.get(childId);
-                if (childNode != null) {
-                    attachChildren(childNode, nodeMap);
-                    childNodes.add(childNode);
-                }
+        for (Map<String, Object> potentialChild : nodeMap.values()) {
+            String parentMapId = String.valueOf(((Map<String, Object>) potentialChild.get("properties")).get("parentmapid"));
+            if (nodeMapId.equals(parentMapId)) {
+                attachChildren(potentialChild, nodeMap);
+                childNodes.add(potentialChild);
             }
         }
         node.put(Constants.CHILDREN, childNodes);
@@ -241,13 +218,20 @@ public class OrganizationService {
             List<Map<String, Object>> nodes = objectMapper.readValue(jsonResponse, new TypeReference<List<Map<String, Object>>>() {});
 
             Map<String, Map<String, Object>> nodeMap = nodes.stream()
-                    .filter(n -> n.get(Constants.ID) != null)
-                    .collect(Collectors.toMap(n -> (String) n.get(Constants.ID), n -> n));
+                    .filter(n -> ((Map<String, Object>) n.get("properties")).get("mapid") != null)
+                    .collect(Collectors.toMap(n -> (String) ((Map<String, Object>) n.get("properties")).get("mapid"), n -> n));
+
+            Set<String> allMapIds = nodes.stream()
+                    .map(n -> (String) ((Map<String, Object>) n.get("properties")).get("mapid"))
+                    .collect(Collectors.toSet());
 
             List<Map<String, Object>> rootNodes = nodes.stream()
-                    .filter(n -> n.get(Constants.PARENT_ORG_ID) == null)
+                    .filter(n -> {
+                        Object parentId = ((Map<String, Object>) n.get("properties")).get("parentmapid");
+                        return parentId == null || !allMapIds.contains(parentId.toString());
+                    })
                     .collect(Collectors.toList());
-
+            
             if (rootNodes.isEmpty()) {
                 log.warn("No root nodes found for search criteria: {}", searchCriteria);
                 response.setResponseCode(HttpStatus.NO_CONTENT);
