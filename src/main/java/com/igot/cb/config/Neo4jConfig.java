@@ -1,5 +1,6 @@
 package com.igot.cb.config;
 
+import com.igot.cb.exception.GraphException;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
@@ -52,7 +53,7 @@ public class Neo4jConfig {
 
         } catch (AuthenticationException | ServiceUnavailableException e) {
             logger.error("Neo4j connection error: ", e);
-            throw new RuntimeException("Failed to initialize Neo4j driver", e);
+            throw new GraphException(e.code(), e.getMessage());
         } catch (Exception e) {
             logger.error("Unexpected error initializing Neo4j driver: ", e);
             throw new RuntimeException("Unexpected error in Neo4j configuration", e);
