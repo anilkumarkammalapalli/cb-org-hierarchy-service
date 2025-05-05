@@ -10,7 +10,7 @@ import java.util.Properties;
 public class PropertiesCache {
 
     private static Logger logger = LoggerFactory.getLogger(Neo4jConfig.class);
-    private final String fileName = "configuration.properties";
+    private final String fileName = "application.properties";
     private final Properties configProp = new Properties();
     private static PropertiesCache instance;
 
@@ -25,11 +25,12 @@ public class PropertiesCache {
     }
 
     public static PropertiesCache getInstance() {
-        // To make thread safe
-        synchronized (PropertiesCache.class) {
-            // check again as multiple threads
-            // can reach above step
-            if (instance == null) instance = new PropertiesCache();
+        if (null == instance) {
+            synchronized (PropertiesCache.class) {
+                if (instance == null) {
+                    instance = new PropertiesCache();
+                }
+            }
         }
         return instance;
     }
